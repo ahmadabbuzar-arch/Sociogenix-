@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>SocioGenix AI — Social Media Content Generator</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --purple:#6C4EF6;--purpleD:#5038D4;--purpleL:#8B6FF8;
+  --gold:#F59E0B;--bg:#F4F6FB;--card:#fff;--card2:#F4F1FF;
+  --border:#E2DCFF;--txt:#1A1340;--muted:#7B7499;
+  --green:#12B76A;--red:#F04438;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);min-height:100vh;display:flex;justify-content:center;}
+::-webkit-scrollbar{display:none;}
+button{cursor:pointer;transition:opacity .15s,transform .1s;font-family:inherit;}
+button:active{opacity:.84;transform:scale(.97);}
+textarea,select,input{outline:none;font-family:inherit;}
+@keyframes spin{to{transform:rotate(360deg);}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.5;}}
+
+#app{width:100%;max-width:480px;min-height:100vh;background:var(--bg);display:flex;flex-direction:column;box-shadow:0 0 60px rgba(108,78,246,.12);}
+
+/* ── TOP BAR ── */
+#topbar{background:#fff;border-bottom:1px solid var(--border);padding:13px 18px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(108,78,246,.06);}
+#topbar .brand span.s{color:var(--purple);}
+#topbar .brand span.g{color:var(--gold);}
+#backbtn{background:#EEF2FF;border:none;color:var(--purple);font-size:20px;padding:5px 12px;border-radius:10px;font-weight:700;display:none;}
+
+/* ── SCREENS ── */
+.screen{display:none;flex:1;overflow-y:auto;padding-bottom:80px;animation:fadeIn .2s ease;}
+.screen.active{display:block;}
+
+/* ── BOTTOM NAV ── */
+#bottomnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#fff;border-top:1px solid var(--border);display:flex;z-index:200;box-shadow:0 -4px 20px rgba(108,78,246,.08);}
+.navbtn{flex:1;background:none;border:none;padding:10px 0 8px;display:flex;flex-direction:column;align-items:center;gap:3px;}
+.navbtn span.lbl{font-size:10px;font-weight:700;color:#ADB5BD;}
+.navbtn.active span.lbl{color:var(--purple);}
+.navbtn .dot{width:22px;height:3px;border-radius:2px;background:var(--purple);display:none;}
+.navbtn.active .dot{display:block;}
+
+/* ── HERO ── */
+.hero{background:linear-gradient(135deg,#6C4EF6 0%,#9B7FF8 100%);padding:24px 20px 28px;text-align:center;position:relative;overflow:hidden;}
+.hero::before{content:'';position:absolute;top:-30px;right:-30px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.08);}
+.hero::after{content:'';position:absolute;bottom:-20px;left:-20px;width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,.06);}
+.hero h1{font-size:26px;font-weight:900;color:#fff;letter-spacing:-.5px;position:relative;}
+.hero h1 .g{color:#FFD166;}
+.hero p{color:rgba(255,255,255,.8);font-size:13px;margin-top:4px;font-weight:500;position:relative;}
+
+/* ── CARDS ── */
+.card{background:#fff;border-radius:16px;padding:16px;box-shadow:0 2px 12px rgba(108,78,246,.08);margin-bottom:14px;}
+.card-label{color:var(--txt);font-size:13px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.card-label span.note{color:var(--muted);font-size:11px;font-weight:400;}
+
+/* ── TEXTAREA ── */
+textarea.topic-inp{width:100%;background:#FAFAFE;border:1.5px solid #E8E3FF;border-radius:12px;padding:12px 14px 28px;color:var(--txt);font-size:14px;resize:none;line-height:1.55;transition:border-color .2s;}
+textarea.topic-inp:focus{border-color:var(--purple);}
+.charcount{text-align:right;font-size:11px;color:var(--muted);margin-top:4px;}
+
+/* ── IMAGE UPLOAD ── */
+#imgUploadArea{width:100%;background:#FAFAFE;border:1.5px dashed var(--border);border-radius:12px;padding:22px 0;display:flex;flex-direction:column;align-items:center;gap:7px;}
+#imgUploadArea .icon-wrap{width:44px;height:44px;border-radius:12px;background:#EEF2FF;display:flex;align-items:center;justify-content:center;font-size:22px;}
+#imgPreview{display:none;position:relative;border-radius:12px;overflow:hidden;border:1.5px solid rgba(108,78,246,.3);}
+#imgPreview img{width:100%;height:160px;object-fit:cover;display:block;}
+#imgPreview .overlay{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(to top,rgba(0,0,0,.6),transparent);padding:20px 12px 10px;}
+#imgPreview .overlay span{color:#fff;font-size:11px;font-weight:600;}
+#removeImg{position:absolute;top:8px;right:8px;background:rgba(0,0,0,.6);border:none;color:#fff;width:28px;height:28px;border-radius:50%;font-size:14px;display:flex;align-items:center;justify-content:center;}
+
+/* ── SELECT ── */
+select.lang-sel{width:100%;background:#FAFAFE;border:1.5px solid #E8E3FF;border-radius:12px;padding:11px 14px;color:var(--txt);font-size:14px;}
+
+/* ── PLATFORM GRID ── */
+.plat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.plat-btn{background:#FAFAFE;border:1.5px solid #E8E3FF;border-radius:12px;padding:10px 12px;display:flex;align-items:center;gap:8px;transition:all .15s;}
+.plat-btn.sel{background:#EEF2FF;border-color:var(--purple);}
+.plat-btn .plat-name{color:var(--muted);font-size:12px;font-weight:600;flex:1;text-align:left;}
+.plat-btn.sel .plat-name{color:var(--purple);}
+.plat-check{width:18px;height:18px;border-radius:50%;background:#E8E3FF;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;color:transparent;}
+.plat-btn.sel .plat-check{background:var(--purple);color:#fff;}
+
+/* ── ERROR ── */
+.err-box{color:var(--red);font-size:13px;text-align:center;background:#FEF3F2;border:1px solid #FECDCA;border-radius:12px;padding:12px 14px;font-weight:600;display:none;}
+.err-box.show{display:block;}
+
+/* ── GENERATE BTN ── */
+.gen-btn{width:100%;background:linear-gradient(135deg,var(--purple),var(--purpleD));color:#fff;border:none;border-radius:16px;padding:18px;font-size:16px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 8px 24px rgba(108,78,246,.4);margin-bottom:8px;}
+.gen-btn:disabled{background:#E8E3FF;color:var(--muted);box-shadow:none;}
+.gen-hint{color:var(--muted);font-size:11px;text-align:center;}
+
+/* ── SPINNER ── */
+.spin{width:18px;height:18px;border-radius:50%;border:3px solid #D6CCFF;border-top-color:var(--purple);animation:spin .7s linear infinite;flex-shrink:0;}
+
+/* ── RESULTS HERO ── */
+.res-hero{background:linear-gradient(135deg,#6C4EF6,#9B7FF8);padding:18px 20px;text-align:center;}
+.res-hero h2{color:#fff;font-size:17px;font-weight:800;}
+.res-hero p{color:rgba(255,255,255,.75);font-size:12px;margin-top:3px;}
+
+/* ── PLATFORM ICON STRIP ── */
+#platIconStrip{background:#fff;padding:14px 16px;border-bottom:1px solid var(--border);display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;justify-content:center;flex-wrap:wrap;}
+.plat-icon-btn{background:none;border:2px solid transparent;border-radius:14px;padding:8px 10px;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:60px;transition:all .15s;}
+.plat-icon-btn.active{background:#EEF2FF;border-color:var(--purple);}
+.plat-icon-btn span{font-size:10px;font-weight:700;color:#ADB5BD;}
+.plat-icon-btn.active span{color:var(--purple);}
+
+/* ── CONTENT/SHOWCASE TOGGLE ── */
+.res-toggle{display:flex;background:#EEEAFF;border-radius:12px;margin:14px 16px 0;padding:3px;}
+.res-toggle button{flex:1;background:none;border:none;border-radius:10px;padding:10px 0;font-size:13px;font-weight:700;color:var(--muted);transition:all .2s;}
+.res-toggle button.active{background:#fff;color:var(--purple);box-shadow:0 2px 8px rgba(108,78,246,.15);}
+
+/* ── CONTENT CARD ── */
+.content-card{background:#fff;border-radius:16px;padding:16px;margin-bottom:12px;box-shadow:0 2px 16px rgba(108,78,246,.1);}
+.cc-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+.cc-plat{display:flex;align-items:center;gap:10px;}
+.cc-plat .plat-info .name{color:var(--txt);font-weight:800;font-size:15px;}
+.cc-plat .plat-info .sub{color:var(--muted);font-size:11px;}
+.cc-actions{display:flex;gap:8px;}
+.copy-btn{background:#F0EEFF;color:var(--purple);border:1.5px solid #D6CCFF;border-radius:10px;padding:8px 14px;font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px;}
+.copy-btn.ok{background:#ECFDF3;color:var(--green);border-color:#ABEFC6;}
+.edit-btn{background:#FFF7ED;color:#C2540A;border:1.5px solid #FED7AA;border-radius:10px;padding:8px 12px;font-size:12px;font-weight:700;}
+.scores-row{display:flex;gap:16px;align-items:center;margin-bottom:14px;padding:10px 12px;background:#FAFAFE;border-radius:12px;border:1px solid #F0EEFF;flex-wrap:wrap;}
+.score-divider{width:1px;height:36px;background:#E8E3FF;}
+.eng-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+.field-wrap{margin-bottom:12px;}
+.field-label{color:var(--purple);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;display:flex;align-items:center;gap:5px;}
+.field-label .bar{width:3px;height:12px;background:var(--purple);border-radius:2px;}
+.field-val{color:var(--txt);font-size:13px;line-height:1.75;background:#FAFAFE;border-radius:10px;padding:10px 12px;border:1px solid #F0EEFF;word-break:break-word;}
+.field-edit{width:100%;background:#FAFAFE;border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--txt);font-size:13px;resize:vertical;min-height:72px;}
+
+/* ── BOTTOM ACTION BTNS ── */
+.action-row{display:flex;gap:10px;margin-top:4px;}
+.copy-all-btn{flex:1;background:#F0EEFF;color:var(--purple);border:1.5px solid #D6CCFF;border-radius:14px;padding:14px;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px;}
+.regen-btn{flex:1;background:linear-gradient(135deg,var(--purple),var(--purpleD));color:#fff;border:none;border-radius:14px;padding:14px;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 6px 20px rgba(108,78,246,.3);}
+
+/* ── SHOWCASE WRAPPER ── */
+#showcaseWrap{margin:12px 16px 0;border-radius:16px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.12);border:1px solid var(--border);}
+
+/* ── VIRAL METER ── */
+.viral-wrap{display:flex;align-items:center;gap:8px;}
+.viral-ring{position:relative;width:40px;height:40px;}
+.viral-ring svg{transform:rotate(-90deg);}
+.viral-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;}
+.viral-info .vtitle{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
+.viral-info .vscore{font-size:12px;font-weight:700;}
+
+/* ── SETTINGS ── */
+.settings-hero{background:linear-gradient(135deg,#6C4EF6,#9B7FF8);border-radius:20px;padding:20px;margin-bottom:16px;color:#fff;}
+.settings-hero h2{font-size:18px;font-weight:800;margin-bottom:4px;}
+.settings-hero p{font-size:12px;opacity:.8;}
+.tag-row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
+.tag{background:rgba(255,255,255,.2);border-radius:20px;padding:3px 10px;font-size:10px;font-weight:600;}
+.toggle-row{background:#fff;border-radius:16px;padding:16px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 2px 12px rgba(108,78,246,.08);}
+.toggle-left{display:flex;align-items:center;gap:12px;}
+.toggle-icon{width:40px;height:40px;border-radius:12px;background:#EEF2FF;display:flex;align-items:center;justify-content:center;font-size:20px;}
+.toggle-switch{width:48px;height:28px;border-radius:14px;background:#E8E3FF;position:relative;cursor:pointer;transition:background .2s;}
+.toggle-switch.on{background:var(--purple);}
+.toggle-knob{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:left .2s;box-shadow:0 2px 6px rgba(0,0,0,.2);}
+.toggle-switch.on .toggle-knob{left:22px;}
+.feat-card{background:#fff;border-radius:16px;padding:16px;box-shadow:0 2px 12px rgba(108,78,246,.08);}
+.feat-item{display:flex;align-items:flex-start;gap:12px;margin-bottom:14px;}
+.feat-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.feat-item h4{color:var(--txt);font-size:13px;font-weight:700;}
+.feat-item p{color:var(--muted);font-size:11px;margin-top:1px;line-height:1.5;}
+
+/* ── POST IMAGE PLACEHOLDER ── */
+.post-img-placeholder{background:linear-gradient(135deg,#2d1b69,#6C4EF6 50%,#0d1f4d);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;position:relative;overflow:hidden;}
+.post-img-placeholder::before{content:'';position:absolute;inset:0;background-image:radial-gradient(circle,rgba(255,255,255,.06) 1px,transparent 1px);background-size:18px 18px;}
+.post-img-placeholder .pimg-icon{font-size:34px;position:relative;}
+.post-img-placeholder .pimg-label{font-size:11px;color:rgba(255,255,255,.45);position:relative;text-align:center;padding:0 20px;line-height:1.4;}
+
+/* Padding wrapper for screens */
+.screen-pad{padding:20px 16px;}
+
+/* all-in-one select all */
+.sel-all-btn{background:#EEF2FF;color:var(--purple);border:none;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- TOP BAR -->
+  <div id="topbar">
+    <button id="backbtn" onclick="goBack()">‹</button>
+    <div class="brand" id="topTitle">
+      <span class="s">Socio</span><span class="g">Genix</span> AI 🚀
+    </div>
+    <div style="width:36px"></div>
+  </div>
+
+  <!-- HOME SCREEN -->
+  <div class="screen active" id="screen-home">
+    <div class="hero">
+      <h1><span class="g">Socio</span>Genix AI 🚀</h1>
+      <p>Generate perfect content for every social media platform</p>
+    </div>
+    <div class="screen-pad">
+
+      <!-- Topic -->
+      <div class="card">
+        <div class="card-label">✏️ Enter your Topic <span style="color:var(--red)">*</span></div>
+        <div style="position:relative">
+          <textarea class="topic-inp" id="topicInput" rows="3" maxlength="200" placeholder="e.g. 5 Tips to Grow Your Business Online" oninput="updateChar()"></textarea>
+          <div class="charcount"><span id="charCount">0</span>/200</div>
+        </div>
+      </div>
+
+      <!-- Image Upload -->
+      <div class="card">
+        <div class="card-label">📷 Upload Image <span class="note">(Optional — AI will analyse)</span></div>
+        <input type="file" id="imgFile" accept="image/*" style="display:none" onchange="handleImage(event)"/>
+        <div id="imgUploadArea" onclick="document.getElementById('imgFile').click()">
+          <div class="icon-wrap">📷</div>
+          <span style="color:var(--txt);font-size:13px;font-weight:600">Tap to upload image</span>
+          <span style="color:var(--muted);font-size:11px">JPG, PNG, WEBP · Claude vision analyses it</span>
+        </div>
+        <div id="imgPreview">
+          <img id="previewImg" src="" alt="preview"/>
+          <button id="removeImg" onclick="removeImage()">✕</button>
+          <div class="overlay"><span>✓ Image helps AI understand your topic better</span></div>
+        </div>
+      </div>
+
+      <!-- Language -->
+      <div class="card">
+        <div class="card-label">🌐 Language</div>
+        <select class="lang-sel" id="langSelect">
+          <option>English</option><option>Hindi</option><option>Spanish</option><option>French</option><option>German</option>
+        </select>
+      </div>
+
+      <!-- Platforms -->
+      <div class="card">
+        <div class="card-label" style="justify-content:space-between">
+          <span style="display:flex;align-items:center;gap:6px">📱 Select Platforms</span>
+          <button class="sel-all-btn" onclick="selectAll()">+ All</button>
+        </div>
+        <div class="plat-grid" id="platGrid">
+          <!-- filled by JS -->
+        </div>
+      </div>
+
+      <div class="err-box" id="errBox"></div>
+
+      <button class="gen-btn" id="genBtn" onclick="generate()">
+        <span style="font-size:20px">✨</span> Generate Content
+      </button>
+      <div class="gen-hint">AI will create content & previews for all selected platforms</div>
+    </div>
+  </div>
+
+  <!-- RESULTS SCREEN -->
+  <div class="screen" id="screen-results">
+    <div class="res-hero">
+      <h2>Your Content is Ready! ✨</h2>
+      <p>Choose a platform to view content and preview</p>
+    </div>
+    <div id="platIconStrip"></div>
+    <div class="res-toggle">
+      <button class="active" id="tabContent" onclick="switchResTab('content')">📋 Content</button>
+      <button id="tabShowcase" onclick="switchResTab('showcase')">👁 Showcase</button>
+    </div>
+    <div style="padding:12px 16px 100px" id="resBody"></div>
+  </div>
+
+  <!-- SETTINGS SCREEN -->
+  <div class="screen" id="screen-settings">
+    <div class="screen-pad">
+      <div class="settings-hero">
+        <h2>SocioGenix AI 🚀</h2>
+        <p>AI-Powered Social Media Content Generator</p>
+        <div class="tag-row">
+          <span class="tag">Instagram</span><span class="tag">YouTube</span><span class="tag">Facebook</span>
+          <span class="tag">Twitter X</span><span class="tag">LinkedIn</span><span class="tag">TikTok</span><span class="tag">Pinterest</span>
+        </div>
+      </div>
+
+      <div class="feat-card">
+        <div style="color:var(--txt);font-size:14px;font-weight:800;margin-bottom:14px">Features</div>
+        <div class="feat-item"><div class="feat-icon" style="background:#EEF2FF">🤖</div><div><h4>AI Content Generation</h4><p>Claude AI generates platform-native viral content in seconds</p></div></div>
+        <div class="feat-item"><div class="feat-icon" style="background:#E0F2FE">📱</div><div><h4>Platform-Wise Optimization</h4><p>Tailored for 7 major social platforms with native style</p></div></div>
+        <div class="feat-item"><div class="feat-icon" style="background:#ECFDF5">👁️</div><div><h4>Showcase / Preview</h4><p>See exactly how posts look before publishing</p></div></div>
+        <div class="feat-item"><div class="feat-icon" style="background:#FFFBEB">📋</div><div><h4>Copy & Download</h4><p>One-click copy for any platform or all at once</p></div></div>
+        <div class="feat-item"><div class="feat-icon" style="background:#FEF2F2">✏️</div><div><h4>Editable Output</h4><p>Tweak AI content to perfectly match your brand voice</p></div></div>
+        <div class="feat-item" style="margin-bottom:0"><div class="feat-icon" style="background:#F5F3FF">🌐</div><div><h4>Multi-language Support</h4><p>English, Hindi, Spanish, French, German</p></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <div id="bottomnav">
+    <button class="navbtn active" id="nav-home" onclick="switchTab('home')">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="color:var(--purple)"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span class="lbl">Home</span>
+      <div class="dot"></div>
+    </button>
+    <button class="navbtn" id="nav-settings" onclick="switchTab('settings')">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ADB5BD" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      <span class="lbl">Settings</span>
+      <div class="dot"></div>
+    </button>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════════════════
+   CONFIG — Apna Cloudflare Worker URL yahan daalo
+════════════════════════════════════════════ */
+const PROXY_URL = "https://YOUR-WORKER-NAME.YOUR-SUBDOMAIN.workers.dev";
+
+/* ════════════════════════════════════════════
+   STATE
+════════════════════════════════════════════ */
+const state = {
+  topic:"", language:"English", selPlats:["instagram","youtube","facebook","twitter"],
+  imgBase64:null, imgType:null, imgPreviewUrl:null,
+  results:null, activePlat:"instagram", resTab:"content",
+  editMode:false, editData:{}, loading:false, currentScreen:"home"
+};
+
+const PLATFORMS = [
+  {id:"instagram",label:"Instagram"},{id:"youtube",label:"YouTube"},
+  {id:"facebook",label:"Facebook"},{id:"twitter",label:"X (Twitter)"},
+  {id:"linkedin",label:"LinkedIn"},{id:"tiktok",label:"TikTok"},
+  {id:"pinterest",label:"Pinterest"}
+];
+
+/* ════════════════════════════════════════════
+   SVG LOGOS
+════════════════════════════════════════════ */
+const LOGOS = {
+  instagram:`<svg width="SZ" height="SZ" viewBox="0 0 48 48" fill="none"><defs><radialGradient id="ig2" cx="30%" cy="107%" r="150%"><stop offset="0%" stop-color="#fdf497"/><stop offset="5%" stop-color="#fdf497"/><stop offset="45%" stop-color="#fd5949"/><stop offset="60%" stop-color="#d6249f"/><stop offset="90%" stop-color="#285AEB"/></radialGradient></defs><rect width="48" height="48" rx="12" fill="url(#ig2)"/><rect x="13" y="13" width="22" height="22" rx="6" stroke="#fff" stroke-width="2.5"/><circle cx="24" cy="24" r="6" stroke="#fff" stroke-width="2.5"/><circle cx="34.5" cy="13.5" r="1.8" fill="#fff"/></svg>`,
+  youtube:`<svg width="SZ" height="SZ" viewBox="0 0 48 48" fill="none"><rect width="48" height="48" rx="12" fill="#FF0000"/><path d="M37 18.5C36.6 17 35.5 15.9 34 15.5 31.4 15 24 15 24 15s-7.4 0-10 .5c-1.5.4-2.6 1.5-3 3C10.5 21 10.5 24 10.5 24s0 3 .5 5.5C11.4 31 12.5 32.1 14 32.5c2.6.5 10 .5 10 .5s7.4 0 10-.5c1.5-.4 2.6-1.5 3-3 .5-2.5.5-5.5.5-5.5s0-3-.5-5.5z" fill="#FF0000" stroke="#fff" stroke-width=".5"/><polygon points="21,19.5 29.5,24 21,28.5" fill="#fff"/></svg>`,
+  facebook:`<svg width="SZ" height="SZ" viewBox="0 0 48 48" fill="none"><rect width="48" height="48" rx="12" fill="#1877F2"/><path d="M30 9h-4.5C22.5 9 20 11.5 20 14.5V18h-4v5.5h4V38h5.5V23.5H29L30 18h-4.5v-2.5c0-.8.4-1.5 1.5-1.5H30V9z" fill="#fff"/></svg>`,
+  twitter:`<svg width="SZ" height="SZ" viewBox="0 0 48 48" fill="none"><rect width="48" height="48" rx="12" fill="#000"/><path d="M26.4 22.1L34.3 13h-1.9L25.5 21l-6.2-8H12l8.3 11.5L12 35.2h1.9l7.3-8.1 5.8 8.1H34L26.4 22.1zm-2.6 2.8l-.8-1.1-6.7-9.1h2.9l5.4 7.3.8 1.1 7 9.6h-2.9l-5.7-7.8z" fill="#fff"/></svg>`,
+  linkedin:`<svg width="SZ" height="SZ" viewBox="0 0 48 48" fill="none"><rect width="48" height="48" rx="12" fill="#0A66C2"/><path d="M16 20h4.5v14H16V20zm2.2-6.5a2.5 2.5 0 110 5 2.5 2.5 0 010-5zM22.5 20h4.3v1.9c.6-1.1 2.1-2.1 4.3-2.1 4.6 0 5.4 3 5.4 6.9V34h-4.5v-6.5c0-1.6 0-3.6-2.2-3.6s-2.5 1.7-2.5 3.4V34h-4.8V20z" fill="#fff"/></svg>`,
+  tiktok:`<svg width="SZ" height="SZ" viewBox="0 0 48 48" fill="none"><rect width="48" height="48" rx="12" fill="#010101"/><path d="M33.5 15c-1.5-1-2.6-2.7-3-4.5h-3.8v21c0 2-1.7 3.7-3.7 3.7s-3.7-1.7-3.7-3.7 1.7-3.7 3.7-3.7c.4 0 .7.1 1 .2v-3.9c-.3-.1-.7-.1-1-.1-4.2 0-7.5 3.4-7.5 7.5s3.3 7.5 7.5 7.5 7.5-3.4 7.5-7.5V21c1.5 1.1 3.3 1.7 5.2 1.7v-3.8c-1 0-2.2-.6-2.2-3.9z" fill="#fff"/></svg>`,
+  pinterest:`<svg width="SZ" height="SZ" viewBox="0 0 48 48" fill="none"><rect width="48" height="48" rx="12" fill="#E60023"/><path d="M24 8C15.2 8 8 15.2 8 24c0 6.6 4 12.3 9.8 14.8-.1-1.2-.3-3 .1-4.4.3-1.2 2.1-9 2.1-9s-.5-1.1-.5-2.7c0-2.5 1.5-4.3 3.3-4.3 1.6 0 2.3 1.2 2.3 2.6 0 1.6-1 3.9-1.5 6.1-.4 1.8.9 3.3 2.7 3.3 3.3 0 5.5-4.2 5.5-9.2 0-3.8-2.6-6.6-7.2-6.6-5.2 0-8.4 3.9-8.4 8.2 0 1.5.5 2.6 1.2 3.4.3.4.4.5.3 1-.1.3-.3 1.2-.4 1.5-.1.5-.5.7-.9.5-2.5-1-3.6-3.8-3.6-6.9 0-5.1 4.3-11.1 12.7-11.1 6.8 0 11.3 4.9 11.3 10.2 0 6.9-3.8 12-9.5 12-1.9 0-3.7-1-4.3-2.1l-1.2 4.5c-.4 1.5-1.3 3-2 4 .8.2 1.6.4 2.4.4 8.8 0 16-7.2 16-16S32.8 8 24 8z" fill="#fff"/></svg>`
+};
+function logo(id,sz=28){return LOGOS[id]?LOGOS[id].replace(/SZ/g,sz):"";}
+
+/* ════════════════════════════════════════════
+   INIT PLATFORM GRID
+════════════════════════════════════════════ */
+function initPlatGrid(){
+  const g=document.getElementById('platGrid');
+  g.innerHTML=PLATFORMS.map(p=>`
+    <button class="plat-btn ${state.selPlats.includes(p.id)?'sel':''}" onclick="togglePlat('${p.id}')" id="plat-${p.id}">
+      ${logo(p.id,26)}
+      <span class="plat-name">${p.label}</span>
+      <span class="plat-check">✓</span>
+    </button>`).join('');
+}
+
+function togglePlat(id){
+  if(state.selPlats.includes(id)) state.selPlats=state.selPlats.filter(x=>x!==id);
+  else state.selPlats.push(id);
+  initPlatGrid();
+}
+
+function selectAll(){state.selPlats=PLATFORMS.map(p=>p.id);initPlatGrid();}
+
+/* ════════════════════════════════════════════
+   IMAGE HANDLING
+════════════════════════════════════════════ */
+function handleImage(e){
+  const f=e.target.files[0]; if(!f) return;
+  state.imgType=f.type;
+  state.imgPreviewUrl=URL.createObjectURL(f);
+  document.getElementById('previewImg').src=state.imgPreviewUrl;
+  document.getElementById('imgUploadArea').style.display='none';
+  document.getElementById('imgPreview').style.display='block';
+  const r=new FileReader();
+  r.onload=()=>state.imgBase64=r.result.split(',')[1];
+  r.readAsDataURL(f);
+}
+function removeImage(){
+  state.imgBase64=null; state.imgType=null; state.imgPreviewUrl=null;
+  document.getElementById('imgFile').value='';
+  document.getElementById('imgUploadArea').style.display='flex';
+  document.getElementById('imgPreview').style.display='none';
+}
+
+/* ════════════════════════════════════════════
+   CHAR COUNT
+════════════════════════════════════════════ */
+function updateChar(){
+  const v=document.getElementById('topicInput').value;
+  state.topic=v;
+  document.getElementById('charCount').textContent=v.length;
+}
+
+/* ════════════════════════════════════════════
+   NAV / SCREENS
+════════════════════════════════════════════ */
+function switchTab(tab){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.navbtn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('screen-'+tab).classList.add('active');
+  document.getElementById('nav-'+tab).classList.add('active');
+  document.getElementById('nav-'+tab).querySelector('svg').style.color=tab==='home'?'var(--purple)':'var(--purple)';
+  // update nav svg colors
+  document.querySelectorAll('.navbtn svg').forEach(s=>s.setAttribute('stroke','#ADB5BD'));
+  document.getElementById('nav-'+tab).querySelector('svg').setAttribute('stroke','var(--purple)');
+  state.currentScreen=tab;
+  document.getElementById('backbtn').style.display='none';
+  document.getElementById('topTitle').innerHTML=tab==='home'
+    ?'<span class="s">Socio</span><span class="g">Genix</span> AI 🚀'
+    :'Settings';
+}
+
+function showResults(){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-results').classList.add('active');
+  document.getElementById('backbtn').style.display='flex';
+  document.getElementById('topTitle').innerHTML='Your Content is Ready! ✨';
+  state.currentScreen='results';
+  renderPlatIcons();
+  renderResBody();
+}
+
+function goBack(){
+  switchTab('home');
+}
+
+function switchResTab(t){
+  state.resTab=t;
+  document.getElementById('tabContent').classList.toggle('active',t==='content');
+  document.getElementById('tabShowcase').classList.toggle('active',t==='showcase');
+  renderResBody();
+}
+
+/* ════════════════════════════════════════════
+   API
+════════════════════════════════════════════ */
+function buildPrompt(){
+  const pList=state.selPlats.join(', ');
+  return `You are SocioGenix AI — expert social media content generator.
+${state.imgBase64?'IMPORTANT: Carefully analyse the uploaded image. Create content that reflects or complements what is shown.':''}
+Topic: "${state.topic}"
+Language: ${state.language}
+Platforms: ${pList}
+
+Return ONLY valid JSON (no markdown, no backticks, no explanation):
+{
+  "instagram":{"caption":"emoji-rich engaging caption","hashtags":["#tag",...20],"viralScore":8,"engagement":"High"},
+  "youtube":{"title":"SEO title","description":"150+ words keyword-rich","tags":["kw",...10],"viralScore":7,"engagement":"Medium"},
+  "facebook":{"caption":"engaging shareable caption","hashtags":["#tag",...8],"viralScore":7,"engagement":"High"},
+  "twitter":{"tweet":"viral tweet under 260 chars","hashtags":["#tag","#tag","#tag"],"viralScore":8,"engagement":"High"},
+  "linkedin":{"post":"professional storytelling 200+ words","hashtags":["#tag",...6],"viralScore":6,"engagement":"Medium"},
+  "tiktok":{"caption":"catchy short hook","hashtags":["#tag",...8],"viralScore":9,"engagement":"High"},
+  "pinterest":{"title":"SEO pin title","description":"SEO rich 100+ words","keywords":["kw",...8],"viralScore":6,"engagement":"Medium"}
+}
+Only include requested platforms. Content in ${state.language}. Use relevant emojis. Make it viral.`;
+}
+
+async function generate(){
+  state.topic=document.getElementById('topicInput').value.trim();
+  state.language=document.getElementById('langSelect').value;
+  const err=document.getElementById('errBox');
+  if(!state.topic){err.textContent='⚠️ Please enter a topic!';err.classList.add('show');return;}
+  if(!state.selPlats.length){err.textContent='⚠️ Select at least one platform!';err.classList.add('show');return;}
+  err.classList.remove('show');
+  state.loading=true;
+  const btn=document.getElementById('genBtn');
+  btn.disabled=true;
+  btn.innerHTML=`<div class="spin"></div><span>Generating${state.imgBase64?' & analysing image':''}…</span>`;
+
+  const msgs=state.imgBase64?[{role:'user',content:[
+    {type:'image',source:{type:'base64',media_type:state.imgType||'image/jpeg',data:state.imgBase64}},
+    {type:'text',text:buildPrompt()}
+  ]}]:[{role:'user',content:buildPrompt()}];
+
+  try{
+    const res=await fetch(PROXY_URL,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2500,messages:msgs})
+    });
+    const data=await res.json();
+    let raw=data?.content?.[0]?.text||'{}';
+    try{state.results=JSON.parse(raw);}
+    catch{state.results=JSON.parse(raw.replace(/```json|```/g,'').trim());}
+    state.editData=JSON.parse(JSON.stringify(state.results));
+    state.activePlat=state.selPlats[0];
+    state.resTab='content';
+    state.editMode=false;
+    showResults();
+  }catch(e){
+    err.textContent='⚠️ Generation failed. Check your connection and try again.';
+    err.classList.add('show');
+  }finally{
+    state.loading=false;
+    btn.disabled=false;
+    btn.innerHTML='<span style="font-size:20px">✨</span> Generate Content';
+  }
+}
+
+/* ════════════════════════════════════════════
+   RENDER PLATFORM ICONS STRIP
+════════════════════════════════════════════ */
+function renderPlatIcons(){
+  const strip=document.getElementById('platIconStrip');
+  strip.innerHTML=state.selPlats.map(pid=>{
+    const p=PLATFORMS.find(x=>x.id===pid);
+    return `<button class="plat-icon-btn ${state.activePlat===pid?'active':''}" onclick="setActivePlat('${pid}')">
+      ${logo(pid,36)}
+      <span>${p.label}</span>
+    </button>`;
+  }).join('');
+}
+
+function setActivePlat(pid){
+  state.activePlat=pid;
+  renderPlatIcons();
+  renderResBody();
+}
+
+/* ════════════════════════════════════════════
+   VIRAL METER HTML
+════════════════════════════════════════════ */
+function viralMeterHTML(score){
+  const col=score>=8?'#12B76A':score>=5?'#F59E0B':'#F04438';
+  const pct=(score/10)*100.5;
+  const lbl=score>=8?'🔥 High':score>=5?'⚡ Good':'📉 Low';
+  return `<div class="viral-wrap">
+    <div class="viral-ring">
+      <svg width="40" height="40" viewBox="0 0 40 40">
+        <circle cx="20" cy="20" r="16" fill="none" stroke="#E8E3FF" stroke-width="4"/>
+        <circle cx="20" cy="20" r="16" fill="none" stroke="${col}" stroke-width="4"
+          stroke-dasharray="${pct} 100.5" stroke-linecap="round" transform="rotate(-90 20 20)"/>
+      </svg>
+      <span class="viral-num" style="color:${col}">${score}</span>
+    </div>
+    <div class="viral-info">
+      <div class="vtitle">Viral Score</div>
+      <div class="vscore" style="color:${col}">${lbl}</div>
+    </div>
+  </div>`;
+}
+
+function engBadgeHTML(level){
+  const m={High:['#12B76A','🚀 High'],Medium:['#F59E0B','⚡ Medium'],Low:['#F04438','📉 Low']};
+  const [col,lbl]=m[level]||['#7B7499',level];
+  return `<span style="background:${col}18;color:${col};border:1px solid ${col}33;border-radius:20px;padding:4px 12px;font-size:11px;font-weight:700">${lbl}</span>`;
+}
+
+/* ════════════════════════════════════════════
+   POST IMAGE HTML
+════════════════════════════════════════════ */
+function postImgHTML(h=200){
+  if(state.imgPreviewUrl){
+    return `<img src="${state.imgPreviewUrl}" style="width:100%;height:${h}px;object-fit:cover;display:block" alt="post"/>`;
+  }
+  const topic=state.topic.slice(0,50);
+  return `<div class="post-img-placeholder" style="height:${h}px">
+    <span class="pimg-icon">🖼️</span>
+    <span class="pimg-label">${topic}</span>
+  </div>`;
+}
+
+/* ════════════════════════════════════════════
+   SHOWCASE HTML BUILDERS
+════════════════════════════════════════════ */
+function igShowcase(c){
+  return `<div style="background:#000;color:#fff;font-family:-apple-system,sans-serif">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px">
+      <div style="display:flex;align-items:center;gap:9px">
+        <div style="width:34px;height:34px;border-radius:50%;padding:2px;background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)">
+          <div style="width:100%;height:100%;border-radius:50%;background:#111;display:flex;align-items:center;justify-content:center;font-size:14px">👤</div>
+        </div>
+        <div><div style="font-size:13px;font-weight:700">sociogenix.ai</div><div style="font-size:10px;color:#888">Original audio · Sponsored</div></div>
+      </div>
+      <span style="font-size:20px;color:#aaa;letter-spacing:2px">···</span>
+    </div>
+    ${postImgHTML(320)}
+    <div style="padding:10px 12px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:10px">
+        <div style="display:flex;gap:16px">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#fff" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#fff" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#fff" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </div>
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#fff" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+      </div>
+      <div style="font-size:13px;font-weight:700;margin-bottom:5px">2,245 likes</div>
+      <div style="font-size:13px;line-height:1.6;color:#e0e0e0"><span style="font-weight:700;color:#fff">sociogenix.ai </span>${(c.caption||'').slice(0,140)}</div>
+      <div style="font-size:12px;color:#6860e0;margin-top:6px;line-height:1.8">${(c.hashtags||[]).slice(0,6).join(' ')}</div>
+      <div style="font-size:12px;color:#666;margin-top:4px">View all 128 comments</div>
+    </div>
+  </div>`;
+}
+
+function ytShowcase(c){
+  return `<div style="background:#0f0f0f;color:#fff;font-family:Roboto,Arial,sans-serif">
+    <div style="background:#0f0f0f;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #222">
+      <div style="display:flex;align-items:center;gap:6px">
+        <svg viewBox="0 0 90 20" width="72" height="16"><rect x="0" y="2" width="27" height="16" rx="4" fill="#FF0000"/><polygon points="9,5 20,10 9,15" fill="#fff"/><text x="30" y="14" font-size="14" font-weight="700" fill="#fff" font-family="Arial">YouTube</text></svg>
+      </div>
+      <svg viewBox="0 0 24 24" width="20" fill="#aaa"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+    </div>
+    <div style="position:relative">${postImgHTML(200)}
+      <div style="position:absolute;bottom:10px;right:10px;background:rgba(0,0,0,.85);color:#fff;font-size:12px;font-weight:700;padding:3px 7px;border-radius:4px">10:45</div>
+    </div>
+    <div style="padding:12px 14px;display:flex;gap:12px">
+      <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#FF0000,#cc0000);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px">🤖</div>
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:500;color:#f1f1f1;line-height:1.4;margin-bottom:4px">${(c.title||'Your Video Title').slice(0,70)}</div>
+        <div style="font-size:12px;color:#aaa">SocioGenix AI · 25K views · 2 days ago</div>
+      </div>
+    </div>
+    <div style="margin:0 14px 14px;background:#272727;border-radius:10px;padding:10px 12px">
+      <div style="font-size:12px;color:#ddd;line-height:1.6">${(c.description||'').slice(0,130)}...</div>
+      <div style="font-size:12px;color:#3ea6ff;margin-top:6px">${(c.tags||[]).slice(0,4).map(t=>'#'+t).join('  ')}</div>
+    </div>
+  </div>`;
+}
+
+function fbShowcase(c){
+  return `<div style="background:#fff;color:#050505;font-family:Helvetica,Arial,sans-serif">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px">
+      <div style="display:flex;gap:10px;align-items:center">
+        <div style="width:42px;height:42px;border-radius:50%;background:#1877F2;display:flex;align-items:center;justify-content:center;font-size:20px;color:#fff;font-weight:900">S</div>
+        <div><div style="font-size:14px;font-weight:700">SocioGenix AI</div><div style="font-size:12px;color:#65676b">2h · 🌐</div></div>
+      </div>
+      <div style="background:#E7F3FF;color:#1877F2;padding:5px 10px;border-radius:6px;font-size:13px;font-weight:700">+ Follow</div>
+    </div>
+    <div style="font-size:14px;color:#050505;line-height:1.65;padding:0 14px 10px">${(c.caption||'').slice(0,220)}</div>
+    ${postImgHTML(200)}
+    <div style="padding:8px 14px;border-bottom:1px solid #e4e6ea;display:flex;justify-content:space-between">
+      <div style="display:flex;align-items:center;gap:4px"><span style="font-size:16px">👍❤️😮</span><span style="font-size:13px;color:#65676b">128</span></div>
+      <div style="font-size:13px;color:#65676b">12 comments · 8 shares</div>
+    </div>
+    <div style="display:flex;justify-content:space-around;padding:2px 0;border-bottom:1px solid #e4e6ea">
+      ${['👍 Like','💬 Comment','↪️ Share'].map(a=>`<button style="background:none;border:none;padding:10px 16px;font-size:14px;font-weight:600;color:#65676b;cursor:pointer">${a}</button>`).join('')}
+    </div>
+  </div>`;
+}
+
+function xShowcase(c){
+  return `<div style="background:#000;color:#e7e9ea;font-family:-apple-system,sans-serif">
+    <div style="display:flex;justify-content:space-between;padding:10px 16px;border-bottom:1px solid #2f3336">
+      ${['For you','Following','Trending'].map((t,i)=>`<span style="font-size:14px;font-weight:700;color:${i===0?'#fff':'#71767b'};border-bottom:${i===0?'2px solid #1d9bf0':'none'};padding-bottom:10px;cursor:pointer">${t}</span>`).join('')}
+    </div>
+    <div style="padding:14px 16px;display:flex;gap:12px">
+      <div style="width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:19px">🤖</div>
+      <div style="flex:1">
+        <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:4px;flex-wrap:wrap">
+          <span style="font-size:15px;font-weight:700;color:#fff">SocioGenix AI</span>
+          <span style="font-size:13px;color:#71767b">@sociogenix_ai · 2h</span>
+        </div>
+        <div style="font-size:15px;line-height:1.6;color:#e7e9ea;margin-bottom:12px">${c.tweet||''}</div>
+        <div style="font-size:14px;color:#1d9bf0;margin-bottom:12px">${(c.hashtags||[]).slice(0,3).join(' ')}</div>
+        <div style="border-radius:14px;overflow:hidden;margin-bottom:12px;border:1px solid #2f3336">${postImgHTML(180)}</div>
+        <div style="display:flex;justify-content:space-between;color:#71767b">
+          ${[['💬','12'],['🔁','45'],['❤️','128'],['📊','1.2K']].map(([ic,n])=>`<div style="display:flex;align-items:center;gap:4px;font-size:13px"><span style="font-size:18px">${ic}</span>${n}</div>`).join('')}
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function liShowcase(c){
+  return `<div style="background:#1b1f23;color:#e0e0e0;font-family:-apple-system,sans-serif">
+    <div style="background:#1b1f23;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #333">
+      <span style="color:#0A66C2;font-size:16px;font-weight:800">in LinkedIn</span>
+      <svg viewBox="0 0 24 24" width="20" fill="#aaa"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5z"/></svg>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 14px 10px">
+      <div style="display:flex;gap:10px;align-items:flex-start">
+        <div style="width:52px;height:52px;border-radius:6px;background:linear-gradient(135deg,#0A66C2,#084f96);display:flex;align-items:center;justify-content:center;font-size:24px">🤖</div>
+        <div><div style="font-size:14px;font-weight:700;color:#fff">SocioGenix AI</div>
+          <div style="font-size:12px;color:#999">AI Content Creator · 2h · 🌐</div></div>
+      </div>
+      <button style="background:none;border:1px solid #0A66C2;color:#0A66C2;border-radius:20px;padding:5px 14px;font-size:13px;font-weight:600;cursor:pointer">+ Follow</button>
+    </div>
+    <div style="font-size:14px;color:#ccc;line-height:1.75;padding:0 14px 12px">${(c.post||'').slice(0,280)}</div>
+    <div style="font-size:13px;color:#0A66C2;padding:0 14px 12px">${(c.hashtags||[]).slice(0,4).join('  ')}</div>
+    ${postImgHTML(190)}
+    <div style="padding:8px 14px;border-bottom:1px solid #333;display:flex;justify-content:space-between">
+      <div style="font-size:12px;color:#888">👍❤️💡 128 reactions</div>
+      <div style="font-size:12px;color:#888">24 comments · 8 reposts</div>
+    </div>
+    <div style="display:flex;justify-content:space-around;padding:2px 0">
+      ${[['👍','Like'],['💬','Comment'],['🔁','Repost'],['📤','Send']].map(([ic,lb])=>`<button style="background:none;border:none;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 12px;cursor:pointer;font-size:12px;color:#aaa"><span style="font-size:20px">${ic}</span>${lb}</button>`).join('')}
+    </div>
+  </div>`;
+}
+
+function ttShowcase(c){
+  return `<div style="background:#010101;color:#fff;font-family:-apple-system,sans-serif;position:relative;min-height:500px;overflow:hidden">
+    ${postImgHTML(500)}
+    <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.92) 35%,transparent 65%)"></div>
+    <div style="position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;padding:12px 14px;align-items:center">
+      <span style="font-size:14px;font-weight:600">Following</span>
+      <span style="font-size:16px;font-weight:700;border-bottom:2px solid #fff;padding-bottom:2px">For You</span>
+      <svg viewBox="0 0 24 24" width="20" fill="#fff"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5z"/></svg>
+    </div>
+    <div style="position:absolute;right:10px;bottom:130px;display:flex;flex-direction:column;gap:22px;align-items:center">
+      <div style="width:44px;height:44px;border-radius:50%;border:2px solid #fff;background:linear-gradient(135deg,#ff0050,#00f2ea);display:flex;align-items:center;justify-content:center;font-size:20px">🤖</div>
+      ${[['❤️','12.5K'],['💬','128'],['🔗','234'],['♪','245']].map(([ic,n])=>`<div style="display:flex;flex-direction:column;align-items:center;gap:2px"><span style="font-size:28px">${ic}</span><span style="font-size:11px;font-weight:700">${n}</span></div>`).join('')}
+    </div>
+    <div style="position:absolute;bottom:70px;left:0;right:60px;padding:0 14px">
+      <div style="font-size:14px;font-weight:700;margin-bottom:4px">@sociogenix.ai</div>
+      <div style="font-size:13px;line-height:1.55;color:#e0e0e0;margin-bottom:7px">${(c.caption||'').slice(0,110)}</div>
+      <div style="font-size:12px;color:#ccc;margin-bottom:10px">${(c.hashtags||[]).slice(0,5).join(' ')}</div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:12px">
+        <div style="width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#ff0050,#00f2ea);display:flex;align-items:center;justify-content:center;font-size:13px">♪</div>
+        <span style="color:#bbb">Original Sound — SocioGenix AI</span>
+      </div>
+    </div>
+    <div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.88);display:flex;justify-content:space-around;padding:8px 0 14px;border-top:1px solid #222">
+      ${[['🏠','Home'],['🔍','Discover'],['',''],['📩','Inbox'],['👤','Profile']].map(([ic,lb],i)=>i===2
+        ?`<div style="display:flex;flex-direction:column;align-items:center;gap:2px"><div style="width:42px;height:28px;border-radius:8px;background:linear-gradient(90deg,#00f2ea,#ff0050);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:#fff">＋</div><span style="font-size:9px;color:transparent">.</span></div>`
+        :`<div style="display:flex;flex-direction:column;align-items:center;gap:2px"><span style="font-size:22px">${ic}</span><span style="font-size:9px;color:#888">${lb}</span></div>`).join('')}
+    </div>
+  </div>`;
+}
+
+function pinShowcase(c){
+  return `<div style="background:#f8f8f8;font-family:-apple-system,sans-serif;color:#111">
+    <div style="background:#fff;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #e0e0e0">
+      <svg viewBox="0 0 24 24" width="26" fill="#E60023"><path d="M12 0C5.373 0 0 5.373 0 12c0 5.084 3.163 9.426 7.627 11.174-.105-.949-.2-2.405.042-3.441.218-.937 1.407-5.965 1.407-5.965s-.359-.719-.359-1.782c0-1.668.967-2.914 2.171-2.914 1.023 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738.098.119.112.224.083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.632-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146C9.57 23.812 10.763 24 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0z"/></svg>
+      <div style="background:#efefef;border-radius:24px;padding:8px 16px;font-size:13px;color:#767676;flex:1;margin:0 12px">🔍 Search</div>
+    </div>
+    <div style="padding:12px">
+      <div style="background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.12)">
+        <div style="position:relative">${postImgHTML(240)}
+          <button style="position:absolute;top:12px;right:12px;background:#E60023;color:#fff;border:none;border-radius:24px;padding:9px 20px;font-size:14px;font-weight:700;cursor:pointer">Save</button>
+        </div>
+        <div style="padding:14px">
+          <div style="font-size:17px;font-weight:700;color:#111;margin-bottom:6px;line-height:1.3">${(c.title||'').slice(0,60)}</div>
+          <div style="font-size:13px;color:#555;line-height:1.65;margin-bottom:10px">${(c.description||'').slice(0,150)}</div>
+          <div style="font-size:12px;color:#E60023;margin-bottom:14px">${(c.keywords||[]).slice(0,4).map(k=>'#'+k).join('  ')}</div>
+          <div style="display:flex;gap:10px">
+            <button style="flex:1;background:#E60023;color:#fff;border:none;border-radius:24px;padding:11px;font-size:14px;font-weight:700;cursor:pointer">Save</button>
+            <button style="flex:1;background:#efefef;color:#111;border:none;border-radius:24px;padding:11px;font-size:14px;font-weight:700;cursor:pointer">Visit</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+const SHOWCASES={instagram:igShowcase,youtube:ytShowcase,facebook:fbShowcase,twitter:xShowcase,linkedin:liShowcase,tiktok:ttShowcase,pinterest:pinShowcase};
+
+/* ════════════════════════════════════════════
+   RENDER RESULTS BODY
+════════════════════════════════════════════ */
+function renderResBody(){
+  const body=document.getElementById('resBody');
+  const pid=state.activePlat;
+  const c=state.editMode?state.editData[pid]:state.results[pid];
+
+  if(state.resTab==='showcase'){
+    const fn=SHOWCASES[pid];
+    body.innerHTML=`<div style="border-radius:16px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.12);border:1px solid #E2DCFF">${fn?fn(c||{}):'<div style="padding:20px;text-align:center;color:#7B7499">No preview available</div>'}</div>`;
+    return;
+  }
+
+  // CONTENT TAB
+  if(!c){body.innerHTML='<div style="padding:20px;text-align:center;color:#7B7499">No content for this platform.</div>';return;}
+  const p=PLATFORMS.find(x=>x.id===pid);
+  const fields=Object.entries(c).filter(([k])=>!['viralScore','engagement'].includes(k));
+  const copyText=fields.map(([k,v])=>`${k.toUpperCase()}:\n${Array.isArray(v)?v.join(' '):v}`).join('\n\n');
+
+  body.innerHTML=`
+  <div class="content-card" id="contentCard">
+    <div class="cc-header">
+      <div class="cc-plat">
+        ${logo(pid,28)}
+        <div class="plat-info"><div class="name">${p.label}</div><div class="sub">AI Generated Content</div></div>
+      </div>
+      <div class="cc-actions">
+        <button class="copy-btn" id="copyPlatBtn" onclick="copyPlatform()"><span style="font-size:15px">⎘</span> Copy</button>
+        <button class="edit-btn" onclick="toggleEdit()">${state.editMode?'✓ Done':'✏️ Edit'}</button>
+      </div>
+    </div>
+    ${(c.viralScore||c.engagement)?`
+    <div class="scores-row">
+      ${c.viralScore?viralMeterHTML(c.viralScore):''}
+      ${c.viralScore&&c.engagement?'<div class="score-divider"></div>':''}
+      ${c.engagement?`<div><div class="eng-label">Engagement</div>${engBadgeHTML(c.engagement)}</div>`:''}
+    </div>`:''}
+    ${fields.map(([k,v])=>`
+    <div class="field-wrap">
+      <div class="field-label"><div class="bar"></div>${k}</div>
+      ${state.editMode
+        ?`<textarea class="field-edit" data-key="${k}" onchange="updateField('${pid}','${k}',this.value)">${Array.isArray(v)?v.join('\n'):v}</textarea>`
+        :`<div class="field-val">${Array.isArray(v)?v.join(' '):v}</div>`}
+    </div>`).join('')}
+  </div>
+  <div class="action-row">
+    <button class="copy-all-btn" onclick="copyAll()"><span style="font-size:16px">⎘</span> Copy All Content</button>
+  </div>
+  <button class="regen-btn" style="width:100%;margin-top:10px" onclick="regenerate()">
+    <span style="font-size:17px">✨</span> Regenerate
+  </button>`;
+
+  // store copyText
+  window._copyPlatText=copyText;
+}
+
+function copyPlatform(){
+  navigator.clipboard.writeText(window._copyPlatText||'');
+  const btn=document.getElementById('copyPlatBtn');
+  if(btn){btn.classList.add('ok');btn.innerHTML='<span style="font-size:15px">✓</span> Copied!';setTimeout(()=>{btn.classList.remove('ok');btn.innerHTML='<span style="font-size:15px">⎘</span> Copy';},1600);}
+}
+
+function copyAll(){
+  const all=state.selPlats.map(pid=>{
+    const p=PLATFORMS.find(x=>x.id===pid); const c=state.results[pid]; if(!c) return '';
+    const fields=Object.entries(c).filter(([k])=>!['viralScore','engagement'].includes(k));
+    return `=== ${p.label} ===\n${fields.map(([k,v])=>`${k.toUpperCase()}:\n${Array.isArray(v)?v.join(' '):v}`).join('\n\n')}`;
+  }).join('\n\n------------\n\n');
+  navigator.clipboard.writeText(all);
+  const btn=event.target.closest('button');
+  if(btn){const orig=btn.innerHTML;btn.innerHTML='✓ Copied All!';btn.style.color='#12B76A';setTimeout(()=>{btn.innerHTML=orig;btn.style.color='';},1600);}
+}
+
+function toggleEdit(){
+  state.editMode=!state.editMode;
+  renderResBody();
+}
+
+function updateField(pid,key,val){
+  if(!state.editData[pid]) return;
+  const orig=state.results[pid][key];
+  state.editData[pid][key]=Array.isArray(orig)?val.split('\n'):val;
+}
+
+async function regenerate(){
+  const btn=event.target.closest('button');
+  btn.innerHTML='<div class="spin"></div> Generating…';btn.disabled=true;
+  const msgs=state.imgBase64?[{role:'user',content:[
+    {type:'image',source:{type:'base64',media_type:state.imgType||'image/jpeg',data:state.imgBase64}},
+    {type:'text',text:buildPrompt()}
+  ]}]:[{role:'user',content:buildPrompt()}];
+  try{
+    const res=await fetch(PROXY_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2500,messages:msgs})});
+    const data=await res.json();
+    let raw=data?.content?.[0]?.text||'{}';
+    try{state.results=JSON.parse(raw);}catch{state.results=JSON.parse(raw.replace(/```json|```/g,'').trim());}
+    state.editData=JSON.parse(JSON.stringify(state.results));
+    state.editMode=false;
+    renderResBody();
+  }catch(e){alert('Regeneration failed. Try again.');}
+  finally{btn.innerHTML='<span style="font-size:17px">✨</span> Regenerate';btn.disabled=false;}
+}
+
+/* ════════════════════════════════════════════
+   INIT
+════════════════════════════════════════════ */
+initPlatGrid();
+</script>
+</body>
+</html>
